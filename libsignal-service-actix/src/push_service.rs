@@ -2,8 +2,8 @@ use std::{sync::Arc, time::Duration};
 
 use awc::{
     error::{ConnectError, PayloadError, SendRequestError},
-    http::StatusCode,
-    http::{header::HeaderValue, Method},
+    http::{Method, StatusCode},
+    http::header::{CONTENT_LENGTH, HeaderValue},
     Client, ClientRequest, ClientResponse, Connector,
 };
 use bytes::Bytes;
@@ -74,8 +74,22 @@ impl AwcPushService {
         S: Stream<Item = Result<Bytes, PayloadError>> + Unpin,
     {
         match response.status() {
-            StatusCode::OK => Ok(()),
-            StatusCode::NO_CONTENT => Ok(()),
+            StatusCode::OK => {
+                match response.headers().get(CONTENT_LENGTH) {
+                    Some(length_header) => match length_header.as_bytes() {
+                        &[0] => {
+                            log::trace!("200 OK with no content");
+                            Err(ServiceError::NoContent(StatusCode::OK))
+                        },
+                        _ => Ok(()),
+                    },
+                    None => Ok(()),
+                }
+            },
+            StatusCode::NO_CONTENT => {
+                log::trace!("Empty response");
+                Err(ServiceError::NoContent(StatusCode::NO_CONTENT))
+            },
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
                 Err(ServiceError::Unauthorized)
             },
@@ -291,7 +305,7 @@ impl PushService for AwcPushService {
         //
         // This is also the reason we depend directly on serde_json, however
         // actix already imports that anyway.
-        let result = if log::log_enabled!(log::Level::Debug) {
+        if log::log_enabled!(log::Level::Debug) {
             let text = response.body().await.map_err(|e| {
                 ServiceError::JsonDecodeError {
                     reason: e.to_string(),
@@ -310,14 +324,6 @@ impl PushService for AwcPushService {
                 .map_err(|e| ServiceError::JsonDecodeError {
                     reason: e.to_string(),
                 })
-        };
-
-        if result.is_err()
-            && response.status() == awc::http::StatusCode::NO_CONTENT
-        {
-            serde_json::from_slice(b"null").or(result)
-        } else {
-            result
         }
     }
 

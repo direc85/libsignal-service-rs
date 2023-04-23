@@ -138,8 +138,19 @@ impl HyperPushService {
         })?;
 
         match response.status() {
-            StatusCode::OK => Ok(response),
-            StatusCode::NO_CONTENT => Ok(response),
+            StatusCode::OK => match response.headers().get(CONTENT_LENGTH) {
+                Some(length_header) => match length_header.as_bytes() {
+                    &[0] => {
+                        log::trace!("200 OK with no content");
+                        Err(ServiceError::NoContent)
+                    },
+                    _ => Ok(response),
+                },
+                None => Ok(response),
+            },
+            StatusCode::NO_CONTENT => {
+                Err(ServiceError::NoContent)
+            },
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
                 Err(ServiceError::Unauthorized)
             },

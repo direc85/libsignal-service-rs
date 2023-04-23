@@ -388,7 +388,10 @@ pub enum ServiceError {
     #[error(transparent)]
     ParseServiceAddress(#[from] ParseServiceAddressError),
 
-    #[error("Not found.")]
+    #[error("No content")]
+    NoContent,
+
+    #[error("Not found")]
     NotFoundError,
 }
 

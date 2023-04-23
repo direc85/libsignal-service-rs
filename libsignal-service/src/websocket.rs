@@ -395,7 +395,16 @@ impl SignalWebSocket {
         }
 
         match response.status() {
-            200 | 204 => json(response.body()),
+            200 => {
+                match &response.body {
+                    Some(body) => json(body),
+                    None => {
+                        log::trace!("SignalWebSocket: 200 OK with no content");
+                        Err(ServiceError::NoContent)
+                    },
+                }
+            },
+            204 => Err(ServiceError::NoContent),
             401 | 403 => Err(ServiceError::Unauthorized),
             404 => Err(ServiceError::NotFoundError),
             413 /* PAYLOAD_TOO_LARGE */ => Err(ServiceError::RateLimitExceeded) ,
