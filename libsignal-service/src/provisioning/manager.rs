@@ -153,15 +153,16 @@ impl<P: PushService> LinkingManager<P> {
                         .expect("failed to send provisioning Url in channel");
                 },
                 Ok(ProvisioningStep::Message(message)) => {
+                    log::trace!("{:?}", message);
                     let aci_uuid = message
                         .aci
                         .ok_or(ProvisioningError::InvalidData {
-                            reason: "missing client UUID".into(),
+                            reason: "missing client ACI UUID".into(),
                         })
                         .and_then(|ref s| {
                             Uuid::parse_str(s).map_err(|e| {
                                 ProvisioningError::InvalidData {
-                                    reason: format!("invalid UUID: {}", e),
+                                    reason: format!("invalid ACI UUID: {}", e),
                                 }
                             })
                         })?;
@@ -169,12 +170,12 @@ impl<P: PushService> LinkingManager<P> {
                     let pni_uuid = message
                         .pni
                         .ok_or(ProvisioningError::InvalidData {
-                            reason: "missing client UUID".into(),
+                            reason: "missing client PNI UUID".into(),
                         })
                         .and_then(|ref s| {
                             Uuid::parse_str(s).map_err(|e| {
                                 ProvisioningError::InvalidData {
-                                    reason: format!("invalid UUID: {}", e),
+                                    reason: format!("invalid PNI UUID: {}", e),
                                 }
                             })
                         })?;
@@ -182,7 +183,7 @@ impl<P: PushService> LinkingManager<P> {
                     let aci_public_key = PublicKey::deserialize(
                         &message.aci_identity_key_public.ok_or(
                             ProvisioningError::InvalidData {
-                                reason: "missing public key".into(),
+                                reason: "missing ACI public key".into(),
                             },
                         )?,
                     )?;
@@ -190,7 +191,7 @@ impl<P: PushService> LinkingManager<P> {
                     let aci_private_key = PrivateKey::deserialize(
                         &message.aci_identity_key_private.ok_or(
                             ProvisioningError::InvalidData {
-                                reason: "missing public key".into(),
+                                reason: "missing ACI public key".into(),
                             },
                         )?,
                     )?;
@@ -198,7 +199,7 @@ impl<P: PushService> LinkingManager<P> {
                     let pni_public_key = PublicKey::deserialize(
                         &message.pni_identity_key_public.ok_or(
                             ProvisioningError::InvalidData {
-                                reason: "missing public key".into(),
+                                reason: "missing PNI public key".into(),
                             },
                         )?,
                     )?;
@@ -206,7 +207,7 @@ impl<P: PushService> LinkingManager<P> {
                     let pni_private_key = PrivateKey::deserialize(
                         &message.pni_identity_key_private.ok_or(
                             ProvisioningError::InvalidData {
-                                reason: "missing public key".into(),
+                                reason: "missing PNI public key".into(),
                             },
                         )?,
                     )?;
