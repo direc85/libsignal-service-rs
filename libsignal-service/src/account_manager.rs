@@ -299,6 +299,7 @@ impl<Service: PushService> AccountManager<Service> {
         url: url::Url,
         identity_store: &dyn IdentityKeyStore,
         credentials: ServiceCredentials,
+        pni_identity_key_pair: KeyPair,
     ) -> Result<(), LinkError> {
         let query: HashMap<_, _> = url.query_pairs().collect();
         let ephemeral_id = query.get("uuid").ok_or(LinkError::InvalidUuid)?;
@@ -327,8 +328,12 @@ impl<Service: PushService> AccountManager<Service> {
             ),
             number: Some(credentials.e164()),
             // TODO: implement pni fields
-            pni_identity_key_public: None,
-            pni_identity_key_private: None,
+            pni_identity_key_public: Some(
+                pni_identity_key_pair.public_key.serialize().into_vec(),
+            ),
+            pni_identity_key_private: Some(
+                pni_identity_key_pair.private_key.serialize(),
+            ),
             pni: None,
             profile_key: self.profile_key.as_ref().map(|x| x.bytes.to_vec()),
             // CURRENT is not exposed by prost :(
