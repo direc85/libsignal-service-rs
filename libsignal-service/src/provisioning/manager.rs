@@ -167,18 +167,19 @@ impl<P: PushService> LinkingManager<P> {
                             })
                         })?;
 
-                    let pni_uuid = message
-                        .pni
-                        .ok_or(ProvisioningError::InvalidData {
-                            reason: "missing client PNI UUID".into(),
-                        })
-                        .and_then(|ref s| {
-                            Uuid::parse_str(s).map_err(|e| {
+                    let pni_uuid = match message.pni {
+                        None => {
+                            log::trace!("PNI UUID missing, inserting nil UUID");
+                            Uuid::nil()
+                        }
+                        Some(pni) => {
+                            Uuid::parse_str(&pni).map_err(|e| {
                                 ProvisioningError::InvalidData {
                                     reason: format!("invalid PNI UUID: {}", e),
                                 }
-                            })
-                        })?;
+                            })?
+                        }
+                    };
 
                     let aci_public_key = PublicKey::deserialize(
                         &message.aci_identity_key_public.ok_or(
